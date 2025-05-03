@@ -1,5 +1,5 @@
-module github.com/sagernet/smux
+module github.com/metacubex/smux
 
 go 1.13
 
-require github.com/sagernet/sing v0.6.7
+require github.com/metacubex/sing v0.5.2

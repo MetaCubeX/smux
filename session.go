@@ -33,7 +33,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sagernet/sing/common/bufio"
+	"github.com/metacubex/sing/common/bufio"
 )
 
 const (

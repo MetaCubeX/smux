@@ -24,7 +24,7 @@ package smux
 
 import (
 	"errors"
-	"github.com/sagernet/sing/common/buf"
+	"github.com/metacubex/sing/common/buf"
 )
 
 var defaultAllocator = (*Allocator)(nil)
