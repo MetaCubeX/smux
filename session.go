@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"github.com/metacubex/sing/common/bufio"
+	"github.com/metacubex/sing/common/network"
 )
 
 const (
@@ -527,6 +528,28 @@ func (s *Session) shaperLoop() {
 	}
 }
 
+type WriteBuffers interface {
+	WriteBuffers(v [][]byte) (n int, err error)
+}
+
+func createWriteBuffers(conn interface{}) (WriteBuffers, bool) {
+	if bw, ok := conn.(WriteBuffers); ok {
+		return bw, true
+	}
+	if bw, ok := bufio.CreateVectorisedWriter(conn); ok {
+		return singWriteBuffers{bw}, true
+	}
+	return nil, false
+}
+
+type singWriteBuffers struct {
+	network.VectorisedWriter
+}
+
+func (s singWriteBuffers) WriteBuffers(vec [][]byte) (n int, err error) {
+	return bufio.WriteVectorised(s.VectorisedWriter, vec)
+}
+
 // sendLoop sends frames to the underlying connection
 func (s *Session) sendLoop() {
 	var buf []byte
@@ -534,7 +557,7 @@ func (s *Session) sendLoop() {
 	var err error
 	var vec [][]byte // vector for writeBuffers
 
-	bw, ok := bufio.CreateVectorisedWriter(s.conn)
+	bw, ok := createWriteBuffers(s.conn)
 	if ok {
 		buf = make([]byte, headerSize)
 		vec = make([][]byte, 2)
@@ -556,7 +579,7 @@ func (s *Session) sendLoop() {
 			if len(vec) > 0 {
 				vec[0] = buf[:headerSize]
 				vec[1] = request.frame.data
-				n, err = bufio.WriteVectorised(bw, vec)
+				n, err = bw.WriteBuffers(vec)
 			} else {
 				copy(buf[headerSize:], request.frame.data)
 				n, err = s.conn.Write(buf[:headerSize+len(request.frame.data)])
