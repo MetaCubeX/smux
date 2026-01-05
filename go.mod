@@ -1,3 +1,3 @@
-module github.com/xtaci/smux
+module github.com/metacubex/smux
 
 go 1.18
