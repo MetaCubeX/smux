@@ -31,6 +31,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/metacubex/sing/common/bufio"
+	"github.com/metacubex/sing/common/network"
 )
 
 const (
@@ -565,6 +568,28 @@ func (s *Session) notifyShaperConsumed() {
 	}
 }
 
+type WriteBuffers interface {
+	WriteBuffers(v [][]byte) (n int, err error)
+}
+
+func createWriteBuffers(conn interface{}) (WriteBuffers, bool) {
+	if bw, ok := conn.(WriteBuffers); ok {
+		return bw, true
+	}
+	if bw, ok := bufio.CreateVectorisedWriter(conn); ok {
+		return singWriteBuffers{bw}, true
+	}
+	return nil, false
+}
+
+type singWriteBuffers struct {
+	network.VectorisedWriter
+}
+
+func (s singWriteBuffers) WriteBuffers(vec [][]byte) (n int, err error) {
+	return bufio.WriteVectorised(s.VectorisedWriter, vec)
+}
+
 // sendLoop sends frames over the underlying connection
 func (s *Session) sendLoop() {
 	var buf []byte
@@ -572,9 +597,7 @@ func (s *Session) sendLoop() {
 	var err error
 	var vec [][]byte // vector for writeBuffers
 
-	bw, ok := s.conn.(interface {
-		WriteBuffers(v [][]byte) (n int, err error)
-	})
+	bw, ok := createWriteBuffers(s.conn)
 
 	if ok {
 		buf = make([]byte, headerSize)
